@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Inventory & Analytics Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        header {
+            background: #173b70;
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #00000010;
+        }
+
+        .card p {
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .card h2 {
+            margin: 0;
+            color: #173b70;
+        }
+
+        .panel {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            overflow-x: auto;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        input, button {
+            padding: 11px 14px;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        input {
+            border: 1px solid #cbd5e1;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        button {
+            border: none;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .secondary {
+            background: #475569;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 500px;
+        }
+
+        th, td {
+            padding: 13px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #eff6ff;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .budget {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .standard {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .premium {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        #message {
+            margin: 10px 0;
+            min-height: 20px;
+        }
+
+        #report {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 18px;
+            border-radius: 8px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            header, .panel {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Product Inventory Dashboard</h1>
+    <p>Manage products and analyze inventory values using JavaScript.</p>
+</header>
+
+<section class="cards">
+    <div class="card">
+        <p>Total Products</p>
+        <h2 id="totalProducts">0</h2>
+    </div>
+
+    <div class="card">
+        <p>Total Inventory Value</p>
+        <h2 id="totalValue">$0.00</h2>
+    </div>
+
+    <div class="card">
+        <p>Average Product Price</p>
+        <h2 id="averagePrice">$0.00</h2>
+    </div>
+
+    <div class="card">
+        <p>Affordable Products</p>
+        <h2 id="affordableCount">0</h2>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Add a Product</h2>
+
+    <form id="productForm">
+        <div class="form-row">
+            <input
+                type="text"
+                id="productName"
+                placeholder="Product name"
+                required
+            >
+
+            <input
+                type="number"
+                id="productPrice"
+                placeholder="Price in dollars"
+                min="0.01"
+                step="0.01"
+                required
+            >
+
+            <button type="submit">Add Product</button>
+        </div>
+    </form>
+
+    <div class="form-row">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search products by name"
+        >
+
+        <button type="button" id="searchButton">Search</button>
+
+        <button type="button" id="showAllButton" class="secondary">
+            Show All
+        </button>
+    </div>
+
+    <p id="message" role="status"></p>
+</section>
+
+<section class="panel">
+    <h2>Inventory Roster</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody"></tbody>
+    </table>
+</section>
+
+<section class="panel">
+    <h2>Affordable Products (Under $200)</h2>
+    <ul id="affordableList"></ul>
+</section>
+
+<section class="panel">
+    <h2>Formatted Report</h2>
+    <div id="report"></div>
+    <button type="button" id="consoleButton">
+        Print Report to Console
+    </button>
+</section>
+
+<script>
+    // 1. Initialize the inventory array of objects.
+    console.log("--- Initializing Inventory System ---");
+
+    let inventory = [
+        { id: 1, name: "Laptop", price: 800 },
+        { id: 2, name: "Mouse", price: 25 }
+    ];
+
+    let nextId = 3;
+    let currentSearch = "";
+
+    // 2. Assign categories using switch.
+    function getCategory(price) {
+        switch (true) {
+            case price < 100:
+                return "Budget";
+            case price < 200:
+                return "Standard";
+            default:
+                return "Premium";
+        }
+    }
+
+    // 3. Calculate total value using a regular function and loop.
+    function calculateTotal(items) {
+        let total = 0;
+
+        for (const product of items) {
+            if (!Number.isFinite(product.price) ||
+                product.price <= 0) {
+                continue;
+            }
+
+            total += product.price;
+        }
+
+        return total;
+    }
+
+    // 4. Arrow function for calculating average.
+    const calculateAverage = items =>
+        items.length === 0 ? 0 :
+        calculateTotal(items) / items.length;
+
+    // 5. Apply tax and discount with local variables.
+    function calculateFinalPrice(price, taxRate, discountRate) {
+        const tax = price * taxRate / 100;
+        const discount = price * discountRate / 100;
+
+        return price + tax - discount;
+    }
+
+    // 6. Display products using forEach().
+    function renderInventory(items) {
+        const body = document.getElementById("inventoryBody");
+        body.innerHTML = "";
+
+        items.forEach(product => {
+            const category = getCategory(product.price);
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${product.id}</td>
+                <td></td>
+                <td>$${product.price.toFixed(2)}</td>
+                <td>
+                    <span class="badge ${category.toLowerCase()}">
+                        ${category}
+                    </span>
+                </td>
+            `;
+
+            // textContent safely inserts the product name.
+            row.cells[1].textContent = product.name;
+            body.appendChild(row);
+        });
+    }
+
+    // 7. Update the analytics cards.
+    function updateAnalytics() {
+        document.getElementById("totalProducts").textContent =
+            inventory.length;
+
+        document.getElementById("totalValue").textContent =
+            "$" + calculateTotal(inventory).toFixed(2);
+
+        document.getElementById("averagePrice").textContent =
+            "$" + calculateAverage(inventory).toFixed(2);
+
+        const affordable = inventory.filter(
+            product => product.price < 200
+        );
+
+        document.getElementById("affordableCount").textContent =
+            affordable.length;
+
+        const list = document.getElementById("affordableList");
+        list.innerHTML = "";
+
+        affordable.forEach(product => {
+            const item = document.createElement("li");
+            item.textContent =
+                `${product.name} - $${product.price.toFixed(2)}`;
+            list.appendChild(item);
+        });
+    }
+
+    // 8. Create a report using map().
+    function createReport() {
+        return inventory.map(product =>
+            `${product.name.toUpperCase()}: $${product.price}`
+        );
+    }
+
+    // 9. Search with a loop and break.
+    function searchProducts(query) {
+        const matches = [];
+
+        for (const product of inventory) {
+            if (!product.name) {
+                continue;
+            }
+
+            if (product.name.toLowerCase().includes(query.toLowerCase())) {
+                matches.push(product);
+            }
+        }
+
+        return matches;
+    }
+
+    // 10. Refresh all dashboard sections.
+    function refreshDashboard() {
+        const visibleProducts = currentSearch.trim() === ""
+            ? inventory
+            : searchProducts(currentSearch.trim());
+
+        renderInventory(visibleProducts);
+        updateAnalytics();
+
+        document.getElementById("report").textContent =
+            createReport().join("\n");
+    }
+
+    // 11. Validate input and add a product.
+    document.getElementById("productForm").addEventListener(
+        "submit",
+        function (event) {
+            event.preventDefault();
+
+            const name = document.getElementById("productName")
+                .value.trim();
+
+            const priceInput = document.getElementById("productPrice").value;
+            const price = Number(priceInput);
+            const message = document.getElementById("message");
+
+            if (name === "") {
+                message.textContent = "Please enter a product name.";
+                return;
+            } else if (
+                priceInput.trim() === "" ||
+                !Number.isFinite(price) ||
+                price <= 0
+            ) {
+                message.textContent = "Enter a valid price greater than zero.";
+                return;
+            } else {
+                inventory.push({
+                    id: nextId++,
+                    name: name,
+                    price: price
+                });
+
+                currentSearch = "";
+                document.getElementById("searchInput").value = "";
+                message.textContent = name + " added successfully!";
+
+                document.getElementById("productName").value = "";
+                document.getElementById("productPrice").value = "";
+
+                refreshDashboard();
+                printConsoleReport();
+            }
+        }
+    );
+
+    // 12. Search button.
+    document.getElementById("searchButton").addEventListener(
+        "click",
+        function () {
+            currentSearch =
+                document.getElementById("searchInput").value.trim();
+
+            const matches = searchProducts(currentSearch);
+
+            if (currentSearch === "") {
+                document.getElementById("message").textContent =
+                    "Showing all products.";
+            } else {
+                document.getElementById("message").textContent =
+                    matches.length + " matching product(s) found.";
+            }
+
+            renderInventory(matches);
+        }
+    );
+
+    // 13. Show all products again.
+    document.getElementById("showAllButton").addEventListener(
+        "click",
+        function () {
+            currentSearch = "";
+            document.getElementById("searchInput").value = "";
+            document.getElementById("message").textContent =
+                "Showing all products.";
+            renderInventory(inventory);
+        }
+    );
+
+    // 14. Print the required report in the browser console.
+    function printConsoleReport() {
+        console.log("\n--- Processing Inventory Roster (forEach) ---");
+
+        inventory.forEach(product => {
+            console.log(
+                `* Item: ${product.name} ($${product.price}) -> ` +
+                `Category: ${getCategory(product.price)}`
+            );
+        });
+
+        const affordableItems = inventory
+            .filter(product => product.price < 200)
+            .map(product => product.name);
+
+        console.log("\n--- Financial Analytics ---");
+        console.log("Total Inventory Value: $" + calculateTotal(inventory));
+        console.log(
+            "Filtered Affordable Items (Under $200):",
+            JSON.stringify(affordableItems)
+        );
+        console.log(
+            "Formatted Report List:",
+            JSON.stringify(createReport())
+        );
+    }
+
+    document.getElementById("consoleButton").addEventListener(
+        "click",
+        printConsoleReport
+    );
+
+    // 15. Optional tax/discount example.
+    console.log(
+        "Laptop final price after 5% tax and 10% discount: $" +
+        calculateFinalPrice(800, 5, 10).toFixed(2)
+    );
+
+    // Initialize the dashboard.
+    refreshDashboard();
+    printConsoleReport();
+</script>
+
+</body>
+</html>
